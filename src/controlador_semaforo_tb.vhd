@@ -14,7 +14,7 @@ architecture tb of controlador_semaforo_tb is
     -- Base de tiempo
     constant Npre : integer := 4;
     constant frecuencia : integer := 10;
-    constant Cpre : unsigned(Npre-1 downto 0) := frecuencia - 1;
+    constant Cpre : unsigned(Npre-1 downto 0) := to_unsigned(frecuencia - 1,Npre);
     constant periodo : time := 1 sec / frecuencia;
     
     -- Configuración semáforo
@@ -32,24 +32,24 @@ architecture tb of controlador_semaforo_tb is
     -- Solicitudes y confirmaciones emergencia y peaton
     
     signal solicitudPeatonA        : std_logic;
-    signal solicitudPeatonB        : std_logic
-    signal solicitudEmergenciaA    : std_logic
+    signal solicitudPeatonB        : std_logic;
+    signal solicitudEmergenciaA    : std_logic;
     signal solicitudEmergenciaB    : std_logic; 
-    signal confirmacionPeatonA     : std_logic
-    signal confirmacionPeatonB     : std_logic
-    signal confirmacionEmergenciaA : std_logic
+    signal confirmacionPeatonA     : std_logic;
+    signal confirmacionPeatonB     : std_logic;
+    signal confirmacionEmergenciaA : std_logic;
     signal confirmacionEmergenciaB : std_logic;
 
     -- Control luces
 
-    signal transitoA : std_logic
+    signal transitoA : std_logic_vector(1 downto 0);
     signal transitoB : std_logic_vector(1 downto 0);
-    signal peatonA   : std_logic
+    signal peatonA   : std_logic;
     signal peatonB   : std_logic;
 
     -- Reloj y reset
 
-    signal clk    : std_logic
+    signal clk    : std_logic;
     signal nreset : std_logic;
 
 begin
@@ -88,7 +88,7 @@ begin
         wait for periodo / 2;
     end process;
 
-    estimulo : process
+    proc_estimulo : process
         file archivo_estimulo : text open read_mode is "../src/controlador_semaforo_estimulo.txt";
         variable linea_estimulo : line; 
         -- solicitudPeatonA&solicitudPeatonB
@@ -115,10 +115,10 @@ begin
                 next;
             end if;
 
-            solicitudPeatonA = estimulo(3);
-            solicitudPeatonB = estimulo(2);
-            solicitudEmergenciaA = estimulo(1);
-            solicitudEmergenciaB = estimulo(0);
+            solicitudPeatonA <= estimulo(3);
+            solicitudPeatonB <= estimulo(2);
+            solicitudEmergenciaA <= estimulo(1);
+            solicitudEmergenciaB <= estimulo(0);
             wait for 1 sec * duracion_segundos;
         end loop;
         wait;
