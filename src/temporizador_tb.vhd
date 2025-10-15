@@ -36,8 +36,10 @@ begin
         wait until rising_edge(clk);
         wait for periodo/4;
         reset <= '0';
-        hab <= '1';
+        hab <= '0';
         P <= to_unsigned(50-1,N);
+        wait for 10 * periodo;
+        hab <= '1';
         wait for 50 * periodo;
         P <= to_unsigned(10-1,N);
         wait for 10 * periodo;
@@ -55,7 +57,7 @@ begin
         constant E_NO_CERO : string := "Esperaba cuenta cero";
     begin
         wait until falling_edge(reset);
-        wait for (50 - 1) * periodo;
+        wait for (60 - 1) * periodo;
         assert T report E_NO_FIN severity error; -- Ciclo final de temporización
         wait for periodo;
         assert Z report E_NO_CERO severity error; -- Ciclo de carga

@@ -26,6 +26,7 @@ begin
     end process;
 
     D_sig <= (others=>'0') when reset else
+             D when not hab else
              unsigned(P) when Z else
              D - 1;
     Z <= D ?= 0;
