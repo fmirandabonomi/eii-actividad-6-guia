@@ -2,6 +2,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use std.env.finish;
+use std.textio.all;
+use ieee.std_logic_textio.all;
 use work.all;
 
 entity controlador_semaforo_tb is
@@ -87,240 +89,93 @@ begin
     end process;
 
     estimulo : process
+        file archivo_estimulo : text open read_mode is "../src/controlador_semaforo_estimulo.txt";
+        variable linea_estimulo : line; 
+        -- solicitudPeatonA&solicitudPeatonB
+        -- &solicitudEmergenciaA&solicitudEmergenciaB
+        variable estimulo : std_logic_vector (3 downto 0);
+        variable lectura_correcta : boolean;
+        variable nr_linea : integer := 0;
+        variable duracion_segundos : integer;
     begin
-        solicitudPeatonA
-        solicitudPeatonB
-        solicitudEmergenciaA
-        solicitudEmergenciaB
         nreset <= '0';
         wait until rising_edge(clk);
         wait for periodo/4;
         nreset <= '1';
-        -- Normal (4 ciclos)
-        wait for 8 sec * (TVerde + TAmarillo);
-        -- Cruce peatonal A, desde verde
-        solicitudPeatonA <= '1';
-        wait for 1 sec;
-        solicitudPeatonA <= '0';
-        wait for 1 sec * (TVerde + TPeaton/2 - 1);
-        -- Cruce peatonal B, desde rojo
-        solicitudPeatonB <= '0';
-        wait for 1 sec * (TPeaton/2 + TAmarillo + TVerde - 1);
-        -- Emergencia en A, desde cruce peatonal B
-        solicitudEmergenciaA <= '1';
-        wait for 1 sec * (TPeaton + TAmarillo + TVerde/2);
-        solicitudEmergenciaA <= '0';
-        -- Emergencia en B, mientras emergencia en A activa;
-        solicitudEmergenciaB <= '1';
-        wait for 1 sec * (TVerde/2 + TAmarillo + TVerde) + periodo + 35 sec;
-        -- Libera emergencia en B luego de 35 segundos extra de verde
-        solicitudEmergenciaB <= '0';
-        -- Funcionamiento normal
+        while not endfile(archivo_estimulo) loop
+            nr_linea := nr_linea + 1;
+            readline(archivo_estimulo,linea_estimulo);
+            read(linea_estimulo,estimulo,lectura_correcta);
+            if lectura_correcta then
+                read(linea_estimulo,duracion_segundos,lectura_correcta);
+            end if;
+            if not lectura_correcta then
+                report "Línea " & integer'image(nr_linea) & "ignorada"
+                severity note;
+                next;
+            end if;
+
+            solicitudPeatonA = estimulo(3);
+            solicitudPeatonB = estimulo(2);
+            solicitudEmergenciaA = estimulo(1);
+            solicitudEmergenciaB = estimulo(0);
+            wait for 1 sec * duracion_segundos;
+        end loop;
         wait;
     end process;
 
     evaluacion : process
-        constant DURACION_AMARILLO : string := "El amarillo debe durar "& integer'image(TAmarillo) & "s";
-        constant A_VERDE_B_ROJO : string := "Cuando A es VERDE B debe ser ROJO";
-        constant PEATON_SOLO_PEDIDO : string := "Cruce peatonal solo se habilita con pedido";
-        constant PEATON_COINCIDE_VERDE : string := "Cruce peatonal debe coincidir con verde de la misma direccion";
-        constant DURACION_VERDE : string := "El verde debe durar " & integer'image(TVerde) & "s";
-        constant A_AMARILLO_B_ROJO : string := "Cuando A es AMARILLO B debe ser ROJO";
-        constant B_VERDE_A_ROJO : string := "Cuando B es VERDE A debe ser ROJO";
-        constant B_AMARILLO_A_ROJO : string := "Cuando B es AMARILLO A debe ser ROJO";
-        constant CONFIRMAR_PEDIDO_PEATON : string := "Debe confirmar pedido de cruce peatonal";
-        constant PEATON_PEDIDO : string := "Cuando hay un pedido válido de cruce peatonal, debe ser atendido";
-        constant FIN_PEDIDO_PEATON : string := "El pedido de cruce se extingue al ser atendido";
-        constant CONFIRMAR_PEDIDO_EMERGENCIA : string := "Debe confirmar deteccion de emergencia";
-        constant LIBERAR_PEDIDO_EMERGENCIA : string := "Debe liberar pedido de emergencia";
-        constant VERDE_DURANTE_EMERGENCIA : string := "Debe permanecer verde durante el paso de emergencia";
-        procedure assertVerdeA (inicial : in boolean) is
-        begin
-            if inicial then
-                assert transitoA = VERDE
-                    report "Debe iniciar con paso para direccion A"
-                    severity error;
-            else
-                assert transitoA = VERDE
-                    report DURACION_AMARILLO
-                    severity error;
-            end if;
-            assert transitoB = ROJO
-                report A_VERDE_B_ROJO
-                severity error;
-            assert not peatonA
-                report PEATON_SOLO_PEDIDO
-                severity error;
-            assert not peatonB
-                report PEATON_COINICIDE_VERDE
-                severity error;
-        end procedure;
-        procedure assertVerdeA is
-        begin
-            assertVerdeA(false);
-        end procedure;
-        procedure assertAmarilloA is
-        begin
-            assert transitoA = AMARILLO
-                report DURACION_VERDE
-                severity error;
-            assert transitoB = ROJO
-                report A_AMARILLO_B_ROJO
-                severity error;
-            assert not peatonA
-                report PEATON_COINICIDE_VERDE
-                severity error;
-            assert not peatonB
-                report PEATON_COINICIDE_VERDE
-                severity error;
-        end procedure;
-        procedure assertVerdeB is
-        begin
-            assert transitoB = VERDE
-                report DURACION_AMARILLO
-                severity error;
-            assert transitoA = ROJO
-                report B_VERDE_A_ROJO
-                severity error;
-        end procedure;
-        procedure assertAmarilloB is
-            assert transitoB = AMARILLO
-                report DURACION_VERDE
-                severity error;
-            assert transitoA = ROJO
-                report B_AMARILLO_A_ROJO
-                severity error;
-        end procedure;
-        procedure assertConfirmaPeatonA is
-        begin
-            assert confirmacionPeatonA
-                report CONFIRMAR_PEDIDO_PEATON
-                severity error;
-        end procedure;
-        procedure assertConfirmaPeatonB is
-        begin
-            assert confirmacionPeatonB
-                report CONFIRMAR_PEDIDO_PEATON
-                severity error;
-        end procedure;
-        procedure assertPeatonA is
-        begin
-            assert transitoA = VERDE
-                report PEATON_COINCIDE_VERDE
-                severity error;
-            assert transitoB = ROJO
-                report A_VERDE_B_ROJO
-                severity error;
-            assert peatonA
-                report PEATON_PEDIDO
-                severity error;
-            assert not confirmacionPeatonA
-                report FIN_PEDIDO_PEATON
-                severity error;
-            assert not peatonB
-                report PEATON_COINICIDE_VERDE
-                severity error;
-        end procedure;
-        procedure assertPeatonB is
-        begin
-            assert transitoB = VERDE
-                report PEATON_COINCIDE_VERDE
-                severity error;
-            assert transitoA = ROJO
-                report A_VERDE_B_ROJO
-                severity error;
-            assert peatonB
-                report PEATON_PEDIDO
-                severity error;
-            assert not confirmacionPeatonB
-                report FIN_PEDIDO_PEATON
-                severity error;
-            assert not peatonA
-                report PEATON_COINICIDE_VERDE
-                severity error;
-        end procedure;
-        procedure assertConfirmaEmergenciaA is
-        begin
-            assert confirmacionEmergenciaA
-                report CONFIRMAR_PEDIDO_EMERGENCIA
-                severity error;
-        end procedure;
-        procedure assertLiberaEmergenciaA is
-        begin
-            assert not confirmacionEmergenciaA
-                report LIBERAR_PEDIDO_EMERGENCIA
-                severity error;
-        end procedure;
-        procedure assertConfirmaEmergenciaB is
-        begin
-            assert confirmacionEmergenciaB
-                report CONFIRMAR_PEDIDO_EMERGENCIA
-                severity error;
-        end procedure;
-        procedure assertLiberaEmergenciaB is
-        begin
-            assert not confirmacionEmergenciaB
-                report LIBERAR_PEDIDO_EMERGENCIA
-                severity error;
-        end procedure;
-        procedure assertVerdeEmergenciaA is
-        begin
-            assert transitoB = VERDE
-                report VERDE_DURANTE_EMERGENCIA
-                severity error;
-            assert transitoA = ROJO
-                report B_VERDE_A_ROJO
-                severity error;
-        end procedure;
+        file archivo_patron : text open read_mode is "../src/controlador_semaforo_patron.txt";
+        variable linea_patron : line; 
+        -- transitoA&peatonA&transitoB&peatonB
+        -- &confirmacionPeatonA&confirmacionPeatonB
+        -- &confirmacionEmergenciaA&confirmacionEmergenciaB
+        variable patron : std_logic_vector (9 downto 0);
+        variable lectura_correcta : boolean;
+        variable nr_linea : integer := 0;
+        variable duracion_segundos : integer;
     begin
-        -- Sincronismo con liberación del reset
         wait until rising_edge(nreset);
-        -- cuatro ciclos normal
-        for i in 1 to 4 loop
-            assertVerdeA(i = 1);
-            wait for 1 sec * TVerde;
-            assertAmarilloA;
-            wait for 1 sec * TAmarillo;
-            assertVerdeB;
-            wait for 1 sec * TVerde;
-            assertAmarilloB;
-            wait for 1 sec * TAmarillo
+        while not endfile(archivo_patron) loop
+            nr_linea := nr_linea + 1;
+            readline(archivo_patron,linea_patron);
+            read(linea_patron,patron,lectura_correcta);
+            if lectura_correcta then
+                read(linea_patron,duracion_segundos,lectura_correcta);
+            end if;
+            if not lectura_correcta then
+                report "Línea " & integer'image(nr_linea) & "ignorada"
+                severity note;
+                next;
+            end if;
+            assert patron(9 downto 8) = transitoA
+                report "Semaforo A distinto del esperado en línea "&integer'image(nr_linea)&" del patron"
+                severity error;
+            assert patron(7) = peatonA
+                report "Semaforo peatonal A distinto del esperado en línea "&integer'image(nr_linea)&" del patron"
+                severity error;
+            assert patron(6 downto 5) = transitoB
+                report "Semaforo B distinto del esperado en línea "&integer'image(nr_linea)&" del patron"
+                severity error;
+            assert patron(4) = peatonB
+                report "Semaforo peatonal B distinto del esperado en línea "&integer'image(nr_linea)&" del patron"
+                severity error;
+            assert patron(3) = confirmacionPeatonA
+                report "Confirmación de pedido de cruce peatonal A distinto del esperado en línea "&integer'image(nr_linea)&" del patron"
+                severity error;
+            assert patron(2) = confirmacionPeatonB
+                report "Confirmación de pedido de cruce peatonal B distinto del esperado en línea "&integer'image(nr_linea)&" del patron"
+                severity error;
+            assert patron(1) = confirmacionEmergenciaA
+                report "Confirmación de pedido de emergencia A distinto del esperado en línea "&integer'image(nr_linea)&" del patron"
+                severity error;
+            assert patron(0) = confirmacionEmergenciaB
+                report "Confirmación de pedido de emergencia B distinto del esperado en línea "&integer'image(nr_linea)&" del patron"
+                severity error;
+            wait for 1 sec * duracion_segundos;
         end loop;
-        -- pedido de cruce A en verde A
-        wait for 1 sec;
-        assertConfirmaPeatonA;
-        wait for 1 sec * (TVerde - 1);
-        -- cruce peatonal
-        assertPeatonA;
-        -- pedido cruce en otra dirección
-        wait for 1 sec * (TPeaton/2.0) + periodo;
-        assertConfirmaPeatonB;
-        wait for 1 sec * (TPeaton/2.0) - periodo;
-        assertAmarilloA;
-        wait for 1 sec * (TAmarillo);
-        assertVerdeB;
-        wait for 1 sec * (TVerde);
-        assertPeatonB;
-        wait for periodo;
-        assertConfirmaEmergenciaA;
-        wait for 1 sec * (TPeaton) - periodo;
-        assertAmarilloB;
-        wait for 1 sec * (TAmarillo);
-        assertVerdeA;
-        wait for 1 sec * (TVerde*3 / 4.0);
-        assertLiberaEmergenciaA;
-        assertConfirmaEmergenciaB;
-        assertVerdeEmergenciaA;
-        wait for 1 sec * (TVerde / 4.0);
-        assertAmarilloA;
-        wait for 1 sec * (TAmarillo);
-        assertVerdeB;
-        wait for 1 sec * (TVerde + 35);
-        assertVerdeEmergenciaB;
-        wait for 2*periodo;
-        assertLiberaEmergenciaB;
-        wait for periodo;
-        assertAmarilloB;
-        wait for 1 sec * TAmarillo;
+        report "Fin de archivo patrón, "&integer'image(nr_linea)&" lineas leidas."
+            severity note;
+        finish;
     end process;
 end tb ; -- tb
