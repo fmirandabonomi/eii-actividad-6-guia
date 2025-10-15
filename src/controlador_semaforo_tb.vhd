@@ -12,16 +12,16 @@ end controlador_semaforo_tb;
 architecture tb of controlador_semaforo_tb is
 
     -- Base de tiempo
-    constant Npre : integer := 4;
+    constant N_PRE : integer := 4;
     constant frecuencia : integer := 10;
-    constant Cpre : unsigned(Npre-1 downto 0) := to_unsigned(frecuencia - 1,Npre);
+    constant C_PRE : unsigned(N_PRE-1 downto 0) := to_unsigned(frecuencia - 1,N_PRE);
     constant periodo : time := 1 sec / frecuencia;
     
     -- Configuración semáforo
-    constant NTimer : integer := 6;
-    constant TVerde  : integer := 50;
-    constant TAmarillo : integer := 10;
-    constant TPeaton : integer := 50; 
+    constant N_TIMER : integer := 6;
+    constant T_VERDE  : integer := 50;
+    constant T_AMARILLO : integer := 10;
+    constant T_PEATON : integer := 50; 
 
     -- Código de luces
     constant ROJO : std_logic_vector(1 downto 0) := "10";
@@ -31,21 +31,21 @@ architecture tb of controlador_semaforo_tb is
 
     -- Solicitudes y confirmaciones emergencia y peaton
     
-    signal solicitudPeatonA        : std_logic;
-    signal solicitudPeatonB        : std_logic;
-    signal solicitudEmergenciaA    : std_logic;
-    signal solicitudEmergenciaB    : std_logic; 
-    signal confirmacionPeatonA     : std_logic;
-    signal confirmacionPeatonB     : std_logic;
-    signal confirmacionEmergenciaA : std_logic;
-    signal confirmacionEmergenciaB : std_logic;
+    signal solicitud_peaton_a        : std_logic;
+    signal solicitud_peaton_b        : std_logic;
+    signal solicitud_emergencia_a    : std_logic;
+    signal solicitud_emergencia_b    : std_logic; 
+    signal confirmacion_peaton_a     : std_logic;
+    signal confirmacion_peaton_b     : std_logic;
+    signal confirmacion_emergencia_a : std_logic;
+    signal confirmacion_emergencia_b : std_logic;
 
     -- Control luces
 
-    signal transitoA : std_logic_vector(1 downto 0);
-    signal transitoB : std_logic_vector(1 downto 0);
-    signal peatonA   : std_logic;
-    signal peatonB   : std_logic;
+    signal transito_a : std_logic_vector(1 downto 0);
+    signal transito_b : std_logic_vector(1 downto 0);
+    signal peaton_a   : std_logic;
+    signal peaton_b   : std_logic;
 
     -- Reloj y reset
 
@@ -55,29 +55,29 @@ architecture tb of controlador_semaforo_tb is
 begin
 
     dut : entity controlador_semaforo generic map (
-        Npre      => Npre,
-        Cpre      => Cpre,
-        NTimer    => NTimer,
-        TVerde    => TVerde,
-        TAmarillo => TAmarillo,
-        TPeaton   => TPeaton
+        N_PRE      => N_PRE,
+        C_PRE      => C_PRE,
+        N_TIMER    => N_TIMER,
+        T_VERDE    => T_VERDE,
+        T_AMARILLO => T_AMARILLO,
+        T_PEATON   => T_PEATON
     ) port map (
         clk => clk,
         nreset => nreset,
         
-        solicitudPeatonA        => solicitudPeatonA,
-        solicitudPeatonB        => solicitudPeatonB,
-        solicitudEmergenciaA    => solicitudEmergenciaA,
-        solicitudEmergenciaB    => solicitudEmergenciaB,
-        confirmacionPeatonA     => confirmacionPeatonA,
-        confirmacionPeatonB     => confirmacionPeatonB,
-        confirmacionEmergenciaA => confirmacionEmergenciaA,
-        confirmacionEmergenciaB => confirmacionEmergenciaB,
+        solicitud_peaton_a        => solicitud_peaton_a,
+        solicitud_peaton_b        => solicitud_peaton_b,
+        solicitud_emergencia_a    => solicitud_emergencia_a,
+        solicitud_emergencia_b    => solicitud_emergencia_b,
+        confirmacion_peaton_a     => confirmacion_peaton_a,
+        confirmacion_peaton_b     => confirmacion_peaton_b,
+        confirmacion_emergencia_a => confirmacion_emergencia_a,
+        confirmacion_emergencia_b => confirmacion_emergencia_b,
 
-        transitoA => transitoA,
-        peatonA   => peatonA,
-        transitoB => transitoB,
-        peatonB   => peatonB
+        transito_a => transito_a,
+        peaton_a   => peaton_a,
+        transito_b => transito_b,
+        peaton_b   => peaton_b
     );
 
     reloj : process
@@ -91,8 +91,8 @@ begin
     proc_estimulo : process
         file archivo_estimulo : text open read_mode is "../src/controlador_semaforo_estimulo.txt";
         variable linea_estimulo : line; 
-        -- solicitudPeatonA&solicitudPeatonB
-        -- &solicitudEmergenciaA&solicitudEmergenciaB
+        -- solicitud_peaton_a&solicitud_peaton_b
+        -- &solicitud_emergencia_a&solicitud_emergencia_b
         variable estimulo : std_logic_vector (3 downto 0);
         variable lectura_correcta : boolean;
         variable nr_linea : integer := 0;
@@ -115,10 +115,10 @@ begin
                 next;
             end if;
 
-            solicitudPeatonA <= estimulo(3);
-            solicitudPeatonB <= estimulo(2);
-            solicitudEmergenciaA <= estimulo(1);
-            solicitudEmergenciaB <= estimulo(0);
+            solicitud_peaton_a <= estimulo(3);
+            solicitud_peaton_b <= estimulo(2);
+            solicitud_emergencia_a <= estimulo(1);
+            solicitud_emergencia_b <= estimulo(0);
             wait for 1 sec * duracion_segundos;
         end loop;
         wait;
@@ -127,9 +127,9 @@ begin
     evaluacion : process
         file archivo_patron : text open read_mode is "../src/controlador_semaforo_patron.txt";
         variable linea_patron : line; 
-        -- transitoA&peatonA&transitoB&peatonB
-        -- &confirmacionPeatonA&confirmacionPeatonB
-        -- &confirmacionEmergenciaA&confirmacionEmergenciaB
+        -- transito_a&peaton_a&transito_b&peaton_b
+        -- &confirmacion_peaton_a&confirmacion_peaton_b
+        -- &confirmacion_emergencia_a&confirmacion_emergencia_b
         variable patron : std_logic_vector (9 downto 0);
         variable lectura_correcta : boolean;
         variable nr_linea : integer := 0;
@@ -148,28 +148,28 @@ begin
                 severity note;
                 next;
             end if;
-            assert patron(9 downto 8) = transitoA
+            assert patron(9 downto 8) = transito_a
                 report "Semaforo A distinto del esperado en línea "&integer'image(nr_linea)&" del patron"
                 severity error;
-            assert patron(7) = peatonA
+            assert patron(7) = peaton_a
                 report "Semaforo peatonal A distinto del esperado en línea "&integer'image(nr_linea)&" del patron"
                 severity error;
-            assert patron(6 downto 5) = transitoB
+            assert patron(6 downto 5) = transito_b
                 report "Semaforo B distinto del esperado en línea "&integer'image(nr_linea)&" del patron"
                 severity error;
-            assert patron(4) = peatonB
+            assert patron(4) = peaton_b
                 report "Semaforo peatonal B distinto del esperado en línea "&integer'image(nr_linea)&" del patron"
                 severity error;
-            assert patron(3) = confirmacionPeatonA
+            assert patron(3) = confirmacion_peaton_a
                 report "Confirmación de pedido de cruce peatonal A distinto del esperado en línea "&integer'image(nr_linea)&" del patron"
                 severity error;
-            assert patron(2) = confirmacionPeatonB
+            assert patron(2) = confirmacion_peaton_b
                 report "Confirmación de pedido de cruce peatonal B distinto del esperado en línea "&integer'image(nr_linea)&" del patron"
                 severity error;
-            assert patron(1) = confirmacionEmergenciaA
+            assert patron(1) = confirmacion_emergencia_a
                 report "Confirmación de pedido de emergencia A distinto del esperado en línea "&integer'image(nr_linea)&" del patron"
                 severity error;
-            assert patron(0) = confirmacionEmergenciaB
+            assert patron(0) = confirmacion_emergencia_b
                 report "Confirmación de pedido de emergencia B distinto del esperado en línea "&integer'image(nr_linea)&" del patron"
                 severity error;
             wait for 1 sec * duracion_segundos;
