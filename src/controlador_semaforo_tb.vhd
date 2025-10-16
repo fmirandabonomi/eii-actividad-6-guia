@@ -16,12 +16,12 @@ architecture tb of controlador_semaforo_tb is
     constant frecuencia : integer := 10;
     constant C_PRE : unsigned(N_PRE-1 downto 0) := to_unsigned(frecuencia - 1,N_PRE);
     constant periodo : time := 1 sec / frecuencia;
-    
+
     -- Configuración semáforo
     constant N_TIMER : integer := 6;
     constant T_VERDE  : integer := 50;
     constant T_AMARILLO : integer := 10;
-    constant T_PEATON : integer := 50; 
+    constant T_PEATON : integer := 50;
 
     -- Código de luces
     constant ROJO : std_logic_vector(1 downto 0) := "10";
@@ -30,11 +30,11 @@ architecture tb of controlador_semaforo_tb is
     constant NEGRO : std_logic_vector(1 downto 0) := "00";
 
     -- Solicitudes y confirmaciones emergencia y peaton
-    
+
     signal solicitud_peaton_a        : std_logic;
     signal solicitud_peaton_b        : std_logic;
     signal solicitud_emergencia_a    : std_logic;
-    signal solicitud_emergencia_b    : std_logic; 
+    signal solicitud_emergencia_b    : std_logic;
     signal confirmacion_peaton_a     : std_logic;
     signal confirmacion_peaton_b     : std_logic;
     signal confirmacion_emergencia_a : std_logic;
@@ -64,7 +64,7 @@ begin
     ) port map (
         clk => clk,
         nreset => nreset,
-        
+
         solicitud_peaton_a        => solicitud_peaton_a,
         solicitud_peaton_b        => solicitud_peaton_b,
         solicitud_emergencia_a    => solicitud_emergencia_a,
@@ -90,12 +90,12 @@ begin
 
     proc_estimulo : process
         file archivo_estimulo : text open read_mode is "../src/controlador_semaforo_estimulo.txt";
-        variable linea_estimulo : line; 
+        variable linea_estimulo : line;
         -- solicitud_peaton_a&solicitud_peaton_b
         -- &solicitud_emergencia_a&solicitud_emergencia_b
         variable estimulo : std_logic_vector (3 downto 0);
         variable lectura_correcta : boolean;
-        variable nr_linea : integer := 0;
+        variable nr_procesadas,nr_ignoradas : integer := 0;
         variable duracion_segundos : integer;
     begin
         nreset <= '0';
@@ -103,36 +103,38 @@ begin
         wait for periodo/4;
         nreset <= '1';
         while not endfile(archivo_estimulo) loop
-            nr_linea := nr_linea + 1;
             readline(archivo_estimulo,linea_estimulo);
             read(linea_estimulo,estimulo,lectura_correcta);
             if lectura_correcta then
                 read(linea_estimulo,duracion_segundos,lectura_correcta);
             end if;
             if not lectura_correcta then
-                report "Línea " & integer'image(nr_linea) & "ignorada"
-                severity note;
+                nr_ignoradas := nr_ignoradas + 1;
                 next;
             end if;
-
+            nr_procesadas := nr_procesadas + 1;
             solicitud_peaton_a <= estimulo(3);
             solicitud_peaton_b <= estimulo(2);
             solicitud_emergencia_a <= estimulo(1);
             solicitud_emergencia_b <= estimulo(0);
             wait for 1 sec * duracion_segundos;
         end loop;
+        report "Fin archivo estímulo, "&integer'image(nr_procesadas)
+                &" líneas procesadas y "&integer'image(nr_ignoradas)
+                &" ignoradas."
+        severity note;
         wait;
     end process;
 
     evaluacion : process
         file archivo_patron : text open read_mode is "../src/controlador_semaforo_patron.txt";
-        variable linea_patron : line; 
+        variable linea_patron : line;
         -- transito_a&peaton_a&transito_b&peaton_b
         -- &confirmacion_peaton_a&confirmacion_peaton_b
         -- &confirmacion_emergencia_a&confirmacion_emergencia_b
         variable patron : std_logic_vector (9 downto 0);
         variable lectura_correcta : boolean;
-        variable nr_linea : integer := 0;
+        variable nr_linea,nr_procesadas,nr_ignoradas : integer := 0;
         variable duracion_segundos : integer;
     begin
         wait until rising_edge(nreset);
@@ -144,10 +146,10 @@ begin
                 read(linea_patron,duracion_segundos,lectura_correcta);
             end if;
             if not lectura_correcta then
-                report "Línea " & integer'image(nr_linea) & "ignorada"
-                severity note;
+                nr_ignoradas := nr_ignoradas + 1;
                 next;
             end if;
+            nr_procesadas := nr_procesadas + 1;
             assert patron(9 downto 8) = transito_a
                 report "Semaforo A distinto del esperado en línea "&integer'image(nr_linea)&" del patron"
                 severity error;
@@ -174,7 +176,9 @@ begin
                 severity error;
             wait for 1 sec * duracion_segundos;
         end loop;
-        report "Fin de archivo patrón, "&integer'image(nr_linea)&" lineas leidas."
+        report "Fin de archivo patrón, "&integer'image(nr_procesadas)
+               &" lineas procesadas, "&integer'image(nr_ignoradas)
+               &" ignoradas."
             severity note;
         finish;
     end process;

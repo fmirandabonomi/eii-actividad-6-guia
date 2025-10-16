@@ -1,5 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 use work.all;
 
 entity top is
@@ -30,12 +31,12 @@ architecture arch of top is
     constant N_PRE : integer := 24;
     constant frecuencia : integer := 12000000;
     constant C_PRE : unsigned(N_PRE-1 downto 0) := to_unsigned(frecuencia - 1,N_PRE);
-    
+
     -- Configuración semáforo
     constant N_TIMER : integer := 6;
     constant T_VERDE  : integer := 50;
     constant T_AMARILLO : integer := 10;
-    constant T_PEATON : integer := 50; 
+    constant T_PEATON : integer := 50;
 
     -- Código de luces
     constant ROJO : std_logic_vector(1 downto 0) := "10";
@@ -64,7 +65,7 @@ begin
     ) port map (
         clk => clk,
         nreset => nreset,
-        
+
         solicitud_peaton_a        => solicitud_peaton_a,
         solicitud_peaton_b        => solicitud_peaton_b,
         solicitud_emergencia_a    => solicitud_emergencia_a,
@@ -79,5 +80,5 @@ begin
         transito_b => transito_b,
         peaton_b   => cruce_peaton_b
     );
-    
+
 end arch ; -- arch
