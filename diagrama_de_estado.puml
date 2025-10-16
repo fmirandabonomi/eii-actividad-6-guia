@@ -1,8 +1,19 @@
 @startuml
 
-note as N1
+note as N_valor_defecto
  Valores por defecto
  Rt <- 0
+end note
+
+note as N_timer
+Timer:
+
+T <= Cuenta = 1
+Z <= Cuenta = 0
+
+Cuenta_sig <= 0 when Rt else
+              C when Z else
+              Cuenta - 1;
 end note
 
 VNS : C <- 49
@@ -65,15 +76,5 @@ APOE : POE <- 1
 [*] --> NPOE
 NPOE --> APOE : SPOE
 APOE --> NPOE : VPOE
-
-||
-
-[*]--> Z : | acum <- 0
-Z --> D : C > 1 ∧ ¬Rt | acum <- C
-Z --> T : C = 1 ∧ ¬Rt | acum <- 1
-T --> Z : | acum <- 0
-D --> T : acum = 2 | acum <- 1
-D --> D : acum > 2 | acum <- acum - 1
-D --> Z : Rt ∧ acum = 0 | acum <- 0
 
 @enduml
